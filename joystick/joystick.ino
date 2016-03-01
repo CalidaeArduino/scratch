@@ -2,6 +2,8 @@
 
 // Function prototypes
 void initServo();
+
+// int deadZone(int x, int x0, int width);
 int deadZone(int x, int x0, int width, int deadOffset = 0);
 
 // Pins
@@ -61,7 +63,7 @@ void loop() {
 
 }
 
-int deadZone(int x, int x0, int width, int deadOffset = 0)
+int deadZone(int x, int x0, int width, int deadOffset)
 {
   return abs(x - x0) < width ? deadOffset : x;
 }
