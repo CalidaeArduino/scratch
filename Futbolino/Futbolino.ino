@@ -9,7 +9,7 @@ const int PIN_IR_A = A5;
 const int PIN_IR_B = A6;
 
 // Constants
-const int IR_THRESHOLD = 256;
+const int IR_THRESHOLD = 32;
 
 // Globals
 int golsA = 0;
@@ -29,9 +29,10 @@ void setup() {
 
 void debug() {
   Serial.print("SCORE A: ");
-  Serial.println(golsA);
-  Serial.print("SCORE B: ");
-  Serial.println(golsB);
+  Serial.print(golsA);
+  Serial.print(" | SCORE B: ");
+  Serial.print(golsB);
+  Serial.println("");
 }
 
 void addGoal(int &team){
@@ -46,9 +47,11 @@ void readIRSensors() {
   readIRSensor(ir_b, debounce_ir_b, golsA);
 }
 void readIRSensor(int &ir, boolean &debounce, int &team) {
-  if (ir > IR_THRESHOLD && !debounce) {
-    addGoal(team);
-    debounce = true;
+  if (!debounce) {
+    if (ir > IR_THRESHOLD) {
+      addGoal(team);
+      debounce = true;
+    }
   } else if (ir < IR_THRESHOLD) {
     debounce = false;
   }
@@ -64,3 +67,4 @@ void loop() {
   debug();
   delay(200);
 }
+
