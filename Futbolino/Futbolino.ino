@@ -1,3 +1,18 @@
+// Data types
+typedef struct Buttons Buttons;
+struct Buttons {
+  bool aPlus;
+  bool aMinus;
+  bool bPlus;
+  bool bMinus;
+};
+
+typedef struct Sensors Sensors;
+struct Sensors {
+  bool irA;
+  bool irB;
+};
+
 // Function prototypes
 
 // Pins
@@ -9,13 +24,17 @@ const int PIN_IR_A = A5;
 const int PIN_IR_B = A6;
 
 // Constants
-const int IR_THRESHOLD = 32;
+const int IR_THRESHOLD = 300;
 
 // Globals
 int golsA = 0;
 int golsB = 0;
-boolean debounce_ir_a = false;
-boolean debounce_ir_b = false;
+bool debounce_ir_a = false;
+bool debounce_ir_b = false;
+bool debounce_button_aPlus = false;
+bool debounce_button_aMinus = false;
+bool debounce_button_bPlus = false;
+bool debounce_button_bMinus = false;
 
 void setup() {
   Serial.begin(9600);
@@ -35,35 +54,78 @@ void debug() {
   Serial.println("");
 }
 
-void addGoal(int &team){
-  team++;
+void addGoal(int &team, int delta = 1){
+  team += delta;
 }
 
-void readIRSensors() {
-  int ir_a  =   analogRead(PIN_IR_A);
-  int ir_b  =   analogRead(PIN_IR_B);
-
-  readIRSensor(ir_a, debounce_ir_a, golsB);
-  readIRSensor(ir_b, debounce_ir_b, golsA);
-}
-void readIRSensor(int &ir, boolean &debounce, int &team) {
+void readButton(int &ir, bool &debounce, int &team, int delta) {
   if (!debounce) {
-    if (ir > IR_THRESHOLD) {
-      addGoal(team);
-      debounce = true;
-    }
   } else if (ir < IR_THRESHOLD) {
     debounce = false;
   }
 }
 
-void loop() {
-  int team_a_plus   =   analogRead(PIN_TEAM_A_PLUS);
-  int team_a_minus  =   analogRead(PIN_TEAM_A_MINUS);
-  int team_b_plus   =   analogRead(PIN_TEAM_B_PLUS);
-  int team_b_minus  =   analogRead(PIN_TEAM_B_MINUS);
+struct Buttons readButtons() {
+  bool aPlus  = digitalRead(PIN_TEAM_A_PLUS);
+  bool aMinus = digitalRead(PIN_TEAM_A_MINUS);
+  bool bPlus  = digitalRead(PIN_TEAM_B_PLUS);
+  bool bMinus = digitalRead(PIN_TEAM_B_MINUS);
 
-  readIRSensors();
+  Buttons b = {aPlus, aMinus, bPlus, bMinus};
+  return b;
+}
+
+void updateScore(Buttons b){
+  if (b.aPlus && b.aMinus && b.bPlus && b.bMinus){
+    golsA = 0;
+    golsB = 0;
+  } else {
+    if (b.aPlus) {
+      addGoal(golsA);
+    }
+    if (b.aMinus) {
+      addGoal(golsA, -1);
+    }
+    if (b.bPlus) {
+      addGoal(golsB);
+    }
+    if (b.bMinus) {
+      addGoal(golsB, -1);
+    }
+  }
+}
+
+struct Sensors readIRSensors() {
+  bool irA = analogRead(PIN_IR_A) > IR_THRESHOLD;
+  bool irB = analogRead(PIN_IR_B) > IR_THRESHOLD;
+
+  Sensors s = {irA, irB};
+  return s;
+}
+
+void updateScore(Sensors s){
+  updateScore(s.irA, debounce_ir_a, golsB);
+  updateScore(s.irB, debounce_ir_b, golsA);
+}
+
+void updateScore(bool &ir, bool &debounce, int &team) {
+  if (!debounce) {
+    if (ir) {
+      addGoal(team);
+      debounce = true;
+    }
+  } else if (!ir) {
+    debounce = false;
+  }
+}
+
+void loop() {
+
+  Sensors s = readIRSensors();
+  updateScore(s);
+  Buttons b = readButtons();
+  updateScore(b);
+
   debug();
   delay(200);
 }
